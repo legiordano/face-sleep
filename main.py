@@ -6,6 +6,7 @@ predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 def detect_fatigue(facial_landmarks):
     left_eye_closed = facial_landmarks[43][1] > facial_landmarks[44][1] and facial_landmarks[42][1] > facial_landmarks[47][1]
+    
     right_eye_closed = facial_landmarks[38][1] > facial_landmarks[41][1] and facial_landmarks[37][1] > facial_landmarks[46][1]
 
     return left_eye_closed or right_eye_closed
@@ -17,16 +18,21 @@ def process_camera():
         ret, frame = video_capture.read()
 
         face_locations = face_recognition.face_locations(frame)
-        face_landmarks = [predictor(frame, face_location) for face_location in face_locations]
+        
+        if not face_locations:
+            continue
 
-        for facial_landmark in face_landmarks:
-            is_fatigued = detect_fatigue([(landmark.x, landmark.y) for landmark in facial_landmark.parts()])
+        facial_landmarks = predictor(frame, face_locations[0])
 
-            if is_fatigued:
-                cv2.putText(frame, "¡Estás quedándote dormido!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        facial_landmarks = [(landmark.x, landmark.y) for landmark in facial_landmarks.parts()]
 
-            top, right, bottom, left = face_locations[0]
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        is_fatigued = detect_fatigue(facial_landmarks)
+
+        if is_fatigued:
+            cv2.putText(frame, "¡Estás quedándote dormido!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+        top, right, bottom, left = face_locations[0]
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
         cv2.imshow("Detección de Cansancio Facial", frame)
 
@@ -36,4 +42,5 @@ def process_camera():
     video_capture.release()
     cv2.destroyAllWindows()
 
-process_camera()
+if __name__ == "__main__":
+    process_camera()
